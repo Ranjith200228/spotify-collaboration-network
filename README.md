@@ -36,7 +36,7 @@ This project analyzes over **100,000 Spotify tracks** to build a network of arti
 - **NetworkX** – Graph creation & metrics  
 - **Scikit-learn** – Machine learning models  
 - **Plotly** – Interactive visualizations  
-- **jupyter notebook** – Development platform
+- **Google colab** – Development platform
 
 ---
 
