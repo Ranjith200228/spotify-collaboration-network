@@ -19,6 +19,7 @@ from itertools import combinations
 from typing import Any
 
 import networkx as nx
+import numpy as np
 import pandas as pd
 
 logger = logging.getLogger(__name__)
@@ -137,10 +138,12 @@ def network_stats(g: nx.Graph) -> dict[str, Any]:
 
     degrees = [d for _, d in g.degree()]
     if degrees:
-        avg_degree = float(sum(degrees) / len(degrees))
+        avg_degree = float(np.mean(degrees))
+        degree_median = float(np.median(degrees))
         max_degree = int(max(degrees))
     else:
         avg_degree = 0.0
+        degree_median = 0.0
         max_degree = 0
 
     components = list(nx.connected_components(g))
@@ -155,6 +158,10 @@ def network_stats(g: nx.Graph) -> dict[str, Any]:
 
     density = float(nx.density(g)) if n_nodes > 1 else 0.0
     isolated_nodes = sum(1 for _, d in g.degree() if d == 0)
+    # Average clustering uses the unweighted formula for honesty: weighted
+    # clustering on a graph dominated by weight=1 edges is essentially the
+    # same number and the unweighted version is cheaper and easier to read.
+    avg_clustering = float(nx.average_clustering(g)) if n_nodes > 0 else 0.0
 
     return {
         "num_nodes": int(n_nodes),
@@ -162,7 +169,9 @@ def network_stats(g: nx.Graph) -> dict[str, Any]:
         "self_loops": int(self_loops),
         "density": density,
         "avg_degree": avg_degree,
+        "degree_median": degree_median,
         "max_degree": max_degree,
+        "avg_clustering": avg_clustering,
         "num_isolated_nodes": int(isolated_nodes),
         "num_connected_components": int(n_components),
         "largest_cc_size": int(largest_cc_size),
