@@ -32,10 +32,12 @@ Thumbs.db
 # Project artefacts
 data/raw/*
 !data/raw/.gitkeep
-reports/*.json
 *.csv
 *.parquet
 *.tsv
+
+# Reports ARE tracked: they are the canonical source of every metric in
+# README.md, so we intentionally keep them in version control.
 
 # Notebook artefacts kept out of repo
 *-checkpoint.ipynb

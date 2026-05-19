@@ -1,0 +1,71 @@
+{
+  "ari": 0.1287625233886452,
+  "largest_communities": {
+    "3": 1551,
+    "21": 435,
+    "29": 869,
+    "47": 304,
+    "257": 414,
+    "668": 541,
+    "698": 1089,
+    "728": 610,
+    "1894": 600,
+    "4336": 336
+  },
+  "modularity": 0.9252348061380627,
+  "nmi": 0.618206411851131,
+  "num_communities": 12610,
+  "num_evaluated_nodes": 29858,
+  "top_community_genres": {
+    "3": {
+      "purity": 0.09477756286266925,
+      "size": 1551,
+      "top_genre": "progressive-house"
+    },
+    "21": {
+      "purity": 0.2045977011494253,
+      "size": 435,
+      "top_genre": "forro"
+    },
+    "29": {
+      "purity": 0.17951668584579977,
+      "size": 869,
+      "top_genre": "dub"
+    },
+    "47": {
+      "purity": 0.23026315789473684,
+      "size": 304,
+      "top_genre": "classical"
+    },
+    "257": {
+      "purity": 0.5942028985507246,
+      "size": 414,
+      "top_genre": "funk"
+    },
+    "668": {
+      "purity": 0.3049907578558225,
+      "size": 541,
+      "top_genre": "minimal-techno"
+    },
+    "698": {
+      "purity": 0.25895316804407714,
+      "size": 1089,
+      "top_genre": "pop-film"
+    },
+    "728": {
+      "purity": 0.5622950819672131,
+      "size": 610,
+      "top_genre": "opera"
+    },
+    "1894": {
+      "purity": 0.5133333333333333,
+      "size": 600,
+      "top_genre": "drum-and-bass"
+    },
+    "4336": {
+      "purity": 0.5773809523809523,
+      "size": 336,
+      "top_genre": "hardstyle"
+    }
+  }
+}

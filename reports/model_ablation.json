@@ -1,0 +1,55 @@
+{
+  "dataset": {
+    "num_artists": 29858,
+    "num_track_rows": 158292,
+    "random_state": 42,
+    "source_csv": "C:\\Users\\ranji\\PycharmProjects\\spotify-collaboration-network\\data\\raw\\(probed)",
+    "test_size": 0.2
+  },
+  "lift_graph_over_audio": {
+    "mae_audio": 12.812578642037511,
+    "mae_combined": 7.6928294802687365,
+    "mae_delta": 5.119749161768775,
+    "rmse_audio": 16.01840454685615,
+    "rmse_combined": 11.409806139317377,
+    "rmse_delta": 4.608598407538773,
+    "rmse_relative_pct": 28.7706456286452
+  },
+  "models": {
+    "audio_only": {
+      "mae": 12.812578642037511,
+      "n_test": 5972,
+      "n_train": 23886,
+      "r2": 0.16364276605558536,
+      "rmse": 16.01840454685615
+    },
+    "baseline_mean": {
+      "mae": 14.432362127172965,
+      "n_test": 5972,
+      "n_train": 23886,
+      "r2": -0.00023340727269460793,
+      "rmse": 17.517576657169652
+    },
+    "combined": {
+      "mae": 7.6928294802687365,
+      "n_test": 5972,
+      "n_train": 23886,
+      "r2": 0.5756640437787004,
+      "rmse": 11.409806139317377
+    },
+    "genre_only": {
+      "mae": 11.053002477275864,
+      "n_test": 5972,
+      "n_train": 23886,
+      "r2": 0.32508407520720317,
+      "rmse": 14.38958227161158
+    },
+    "graph_only": {
+      "mae": 8.772384153643465,
+      "n_test": 5972,
+      "n_train": 23886,
+      "r2": 0.4625123469779434,
+      "rmse": 12.841258687578769
+    }
+  }
+}
