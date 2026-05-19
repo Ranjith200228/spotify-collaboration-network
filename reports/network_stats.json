@@ -1,5 +1,7 @@
 {
+  "avg_clustering": 0.2684594342790169,
   "avg_degree": 2.591198338803671,
+  "degree_median": 1.0,
   "density": 8.678696248128314e-05,
   "largest_cc_fraction": 0.4108446647464666,
   "largest_cc_size": 12267,
