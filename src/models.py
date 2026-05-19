@@ -259,6 +259,11 @@ def run_ablation(
     audio = runs["audio_only"]
     combined = runs["combined"]
     lift = {
+        # R² lift (the spec's canonical headline: positive = improvement)
+        "r2_audio": audio.r2,
+        "r2_combined": combined.r2,
+        "r2_delta": float(combined.r2 - audio.r2),
+        # RMSE lift (positive = improvement)
         "rmse_audio": audio.rmse,
         "rmse_combined": combined.rmse,
         "rmse_delta": float(audio.rmse - combined.rmse),
@@ -267,6 +272,7 @@ def run_ablation(
             if audio.rmse
             else 0.0
         ),
+        # MAE lift (positive = improvement)
         "mae_audio": audio.mae,
         "mae_combined": combined.mae,
         "mae_delta": float(audio.mae - combined.mae),
