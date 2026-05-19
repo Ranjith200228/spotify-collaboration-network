@@ -15,7 +15,7 @@ A graph machine-learning pipeline that builds an artist collaboration network fr
 
 Spotify exposes a rich catalogue of audio features for every track — acousticness, energy, valence, tempo, and so on. The conventional approach to predicting an artist's popularity is to feed those features into a regressor and call it done. That approach has a ceiling: roughly R² ≈ 0.16 on this dataset.
 
-This project asks a harder question: **does it matter who you collaborate with?** The answer turns out to be yes, by a wide margin. A model trained on graph-position features alone — PageRank, weighted degree, k-core, betweenness, leak-safe neighbour popularity — beats the audio-only model by nearly 30 points of R² (0.46 vs 0.16). Combining audio, genre, and graph features cuts test-set RMSE by 28.8% relative to audio alone.
+This project asks a harder question: **does it matter who you collaborate with?** The answer turns out to be yes, by a wide margin. A model trained on graph-position features alone — PageRank, weighted degree, k-core, betweenness, leak-safe neighbour popularity — beats the audio-only model by nearly 30 points of R² (0.46 vs 0.16). Combining audio, genre, and graph features adds a further Δ R² = +0.413 over audio alone and cuts test-set RMSE by 28.9% relative.
 
 The project began as a refactor of an existing Colab notebook that reported `R² = 1.00` — a number so good it had to be wrong. The original code had two compounding leakage bugs. First, duplicate `(track_id, artist_name)` rows produced self-loops during edge construction, which silently fed every node's own popularity back into its neighbour features. Second, `avg_neighbor_popularity` was computed over the full graph *after* `train_test_split`, so held-out targets flowed straight into the training feature matrix. Both leaks are fixed, the fix is locked in by a regression test, and the new realistic R² is honest.
 
@@ -26,7 +26,7 @@ Beyond the headline result, the codebase has been rebuilt as a modular Python pa
 ## Key Highlights
 
 - **A real leakage post-mortem.** The repo doesn't just contain a working pipeline; it tells the story of why the original `R² = 1.00` was wrong, fixes both root causes, and ships a regression test (`test_neighbor_pop_uses_only_train_nodes`) that fails CI the moment anyone reintroduces the bug.
-- **Network features beat audio features by a wide margin.** `graph_only` reaches R² 0.463 vs `audio_only` at 0.164 on the same 80/20 split — a clean answer to a research question that audio-only baselines quietly lose on.
+- **Network features beat audio features by a wide margin.** `graph_only` reaches R² 0.462 vs `audio_only` at 0.164 on the same 80/20 split — a clean answer to a research question that audio-only baselines quietly lose on. The combined feature set adds **Δ R² = +0.413** over audio alone.
 - **Five-way ablation, single reproducible split.** `baseline_mean`, `genre_only`, `audio_only`, `graph_only`, `combined` — same `random_state`, same gradient boosting hyperparameters across all four real models, so the comparison isn't gamed.
 - **Reports drive the README.** Every metric here is read out of `reports/*.json`. To update the numbers, you re-run the pipeline, not edit markdown.
 - **Two real-world dataset schemas supported.** The loader auto-detects between the Kaggle "Ultimate Spotify Tracks DB" long-form schema (`artist_name`, `genre`) and the HuggingFace `maharshipandya/spotify-tracks-dataset` short-form schema (semicolon-separated `artists`, `track_genre`). Drop either into `data/raw/` and the pipeline runs.
@@ -97,6 +97,30 @@ The boundary that matters most sits between `split_nodes()` and `compute_neighbo
 
 ## Technical Methodology
 
+### The graph at a glance
+
+Honest descriptive statistics from `reports/network_stats.json`. None of these are tuned; they're the dataset as it actually arrives.
+
+| Metric                          | Value      |
+| ------------------------------- | ---------: |
+| Artists (nodes)                 | 29,858     |
+| Collaborations (edges)          | 38,684     |
+| Self-loops (audit check)        | **0**      |
+| Density                         | 8.68 × 10⁻⁵ |
+| Mean degree                     | 2.59       |
+| Median degree                   | 1.00       |
+| Max degree                      | 177        |
+| Average clustering coefficient  | 0.268      |
+| Isolated nodes                  | 10,160 (34.0 %) |
+| Connected components            | 12,525     |
+| Largest connected component    | 12,267 (41.1 % of nodes) |
+
+Mean degree of 2.6 with a median of 1 says the distribution is heavy-tailed: most artists have at most one collaborator, a small number have hundreds. The 34% isolation rate is the dataset speaking honestly — solo artists outnumber collaborators by roughly 2:1, and any predictive signal coming out of graph features lives in the 66% that actually share tracks. The dataset's multi-artist credit conventions concentrate collaborations in classical, opera, and movie-soundtrack genres (composers credited alongside performers, original alongside remix, soundtrack ensembles), which is why those communities dominate the top-purity table in the next section.
+
+### A note on Spark
+
+The original notebook used PySpark to load this CSV and immediately called `.toPandas()`. At 232K rows the dataset comfortably fits in pandas; Spark was overhead, not a feature — the JVM startup alone outweighs the CSV parse time. This rewrite uses pandas throughout. A scaled-up version (the full Million Song Dataset at ~280M rows, or a streaming ingest from the Spotify Web API) would justify Spark, and the pipeline would migrate cleanly because the long-form `(track_id, artist_name, …)` schema is already Spark-friendly. This dataset does not justify Spark, and reaching for it would be cargo-cult engineering. Knowing when *not* to reach for a tool matters as much as knowing the tool.
+
 ### The leakage problem and the fix
 
 The original notebook computed `avg_neighbor_popularity` over every neighbour of every node, then used it as a feature in an 80/20 split regression. After the split, every test node's `popularity` was reachable from its train neighbours' feature rows — the target literally fed itself into the feature matrix through the graph topology. The fix is to compute neighbour-aware features *after* the split, with an explicit train-only mask:
@@ -123,7 +147,7 @@ Each feature is chosen because it tells the model something different about a no
 - **clustering coefficient** — does this artist sit inside a tight clique, or bridge between communities?
 - **k-core** — depth of the densest subgraph this node lives inside. A structural-robustness signal.
 - **betweenness centrality** — bridging score. Sampled with `k=500` because exact betweenness on a 30K-node graph runs in tens of minutes and the sampling variance is acceptable for a downstream feature.
-- **eigenvector centrality** — recursive "important by virtue of important neighbours." Restricted to the largest connected component because power iteration doesn't converge on disconnected graphs; nodes outside that CC get zero with logging.
+- **eigenvector centrality** — recursive "important by virtue of important neighbours." Computed per connected component (the algorithm doesn't converge globally on disconnected graphs). Size-2 components fall back to power iteration because the dense ARPACK solver requires N ≥ 3; singletons get zero.
 - **avg_neighbor_popularity (leak-safe)** — the one node-attribute-aware feature. Restricted to train neighbours by construction.
 
 ### Louvain and the genre comparison
@@ -155,10 +179,10 @@ Gradient boosting at depth 3 was a deliberate choice. The model is a strong lear
 | `baseline_mean` | none (predicts train mean) | 14.43 | 17.52 | -0.000 |
 | `audio_only` | 9 audio features | 12.81 | 16.02 | 0.164 |
 | `genre_only` | one-hot `top_genre` | 11.05 | 14.39 | 0.325 |
-| `graph_only` | 8 structural + leak-safe neighbour pop | 8.77 | 12.84 | **0.463** |
-| `combined` | genre ∪ audio ∪ graph | **7.69** | **11.41** | **0.576** |
+| `graph_only` | 8 structural + leak-safe neighbour pop | 8.79 | 12.85 | **0.462** |
+| `combined` | genre ∪ audio ∪ graph | **7.69** | **11.39** | **0.577** |
 
-**Lift, audio_only → combined:** RMSE drops 4.61 absolute (28.8% relative). MAE drops 5.12 absolute.
+**Lift, audio_only → combined:** Δ R² = **+0.413** absolute. RMSE drops 4.62 (28.9% relative). MAE drops 5.12.
 
 A few takeaways the table makes obvious:
 
@@ -181,7 +205,7 @@ Removes duplicate `(track_id, artist_name)` rows before enumerating co-artist pa
 Auto-detects between Kaggle long-form (`artist_name`, `genre`) and HuggingFace short-form (`artists` semicolon-separated, `track_genre`). Explodes multi-artist rows into long form regardless of input shape. Coerces popularity to numeric and drops malformed records with explicit logging.
 
 ### Structural feature pack
-PageRank, weighted/unweighted degree, clustering, k-core, sampled betweenness, eigenvector centrality (restricted to the largest CC to handle disconnected graphs cleanly). All computed once and cached in a DataFrame indexed by node.
+PageRank, weighted/unweighted degree, clustering, k-core, sampled betweenness, eigenvector centrality computed per connected component (with a power-iteration fallback for size-2 components where ARPACK doesn't apply, and zero for singletons). All computed once and cached in a DataFrame indexed by node.
 
 ### Five-way ablation harness
 `FEATURE_GROUPS` declares membership; `run_ablation()` trains all five models on the same split with the same hyperparameters and produces a single JSON report. The `lift_graph_over_audio` summary surfaces the headline number — RMSE/MAE improvement of combined over audio-only — without forcing the reader to dig through the table.
@@ -390,8 +414,9 @@ table = build_feature_table(g, train_nodes=train, audio_features=AUDIO_FEATURES)
 
 results = run_ablation(table, train_nodes=train, test_nodes=test)
 print(results["lift_graph_over_audio"])
-# {'rmse_audio': 16.02, 'rmse_combined': 11.41, 'rmse_delta': 4.61,
-#  'rmse_relative_pct': 28.77, 'mae_audio': 12.81, 'mae_combined': 7.69, ...}
+# {'r2_audio': 0.164, 'r2_combined': 0.577, 'r2_delta': 0.413,
+#  'rmse_audio': 16.02, 'rmse_combined': 11.39, 'rmse_delta': 4.62,
+#  'rmse_relative_pct': 28.87, 'mae_audio': 12.81, 'mae_combined': 7.69, ...}
 ```
 
 ### Verify the leak fix
