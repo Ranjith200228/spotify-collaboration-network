@@ -10,29 +10,44 @@ from src.models import FEATURE_GROUPS, run_ablation
 
 def _synthetic_table(n: int = 200, seed: int = 0) -> pd.DataFrame:
     rng = np.random.default_rng(seed)
-    audio = rng.normal(size=(n, 3))
-    graph = rng.normal(size=(n, 4))
-    # Target depends on a couple of features + noise
+    audio_cols = [
+        "acousticness",
+        "danceability",
+        "energy",
+        "instrumentalness",
+        "liveness",
+        "loudness",
+        "speechiness",
+        "tempo",
+        "valence",
+    ]
+    graph_cols = [
+        "degree",
+        "weighted_degree",
+        "pagerank",
+        "clustering",
+        "core_number",
+        "betweenness",
+        "eigenvector",
+        "avg_neighbor_popularity",
+    ]
+    audio = rng.normal(size=(n, len(audio_cols)))
+    graph = rng.normal(size=(n, len(graph_cols)))
     pop = (
         20
         + 5 * audio[:, 0]
         + 2 * graph[:, 0]
         + rng.normal(scale=5.0, size=n)
     )
-    return pd.DataFrame(
-        {
-            "popularity": pop,
-            "top_genre": rng.choice(["pop", "rock", "jazz"], size=n),
-            "acousticness": audio[:, 0],
-            "danceability": audio[:, 1],
-            "energy": audio[:, 2],
-            "degree": graph[:, 0],
-            "pagerank": graph[:, 1],
-            "clustering": graph[:, 2],
-            "avg_neighbor_popularity": graph[:, 3],
-        },
-        index=[f"a{i}" for i in range(n)],
-    )
+    data: dict[str, np.ndarray] = {
+        "popularity": pop,
+        "top_genre": rng.choice(["pop", "rock", "jazz"], size=n),
+    }
+    for i, c in enumerate(audio_cols):
+        data[c] = audio[:, i]
+    for i, c in enumerate(graph_cols):
+        data[c] = graph[:, i]
+    return pd.DataFrame(data, index=[f"a{i}" for i in range(n)])
 
 
 def test_feature_groups_disjoint():
