@@ -17,7 +17,7 @@ the full graph because they describe topology, not target values.
 from __future__ import annotations
 
 import logging
-from typing import Iterable
+from collections.abc import Iterable
 
 import networkx as nx
 import numpy as np

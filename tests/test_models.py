@@ -64,7 +64,7 @@ def test_run_ablation_returns_expected_models():
     assert {"baseline_mean", "genre_only", "audio_only", "graph_only", "combined"}.issubset(
         results["models"].keys()
     )
-    for name, metrics in results["models"].items():
+    for _name, metrics in results["models"].items():
         assert {"mae", "rmse", "r2"}.issubset(metrics.keys())
         assert metrics["rmse"] > 0
 
