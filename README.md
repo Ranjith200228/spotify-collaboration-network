@@ -443,7 +443,3 @@ spotify-collaboration-network/
 MIT. See [`LICENSE`](LICENSE) if present, or treat this section as the licence text. The Spotify dataset itself is governed by its upstream Kaggle / HuggingFace terms.
 
 ---
-
-## Closing Notes
-
-The interesting artefact of this project isn't the final R² of 0.576 — that's a respectable but unremarkable number. The interesting artefact is that the original notebook reported R² = 1.00, the gap is entirely explained by two leakage bugs that are easy to miss, and the regression test that prevents anyone (including future me) from reintroducing them is twelve lines of code. The discipline of split-before-features is cheap to apply, expensive to retrofit, and rarely talked about in graph ML tutorials. This repo is the version of that lesson I wish I'd found when I first opened the original notebook.
