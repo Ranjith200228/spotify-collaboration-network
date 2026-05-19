@@ -136,23 +136,36 @@ def compute_structural_features(
             g, k=betweenness_k, seed=random_state, weight="weight"
         )
 
-    logger.info("Computing eigenvector centrality on largest CC")
+    logger.info("Computing eigenvector centrality per connected component")
     eigenvector: dict[str, float] = {n: 0.0 for n in nodes}
-    if g.number_of_edges() > 0:
-        largest_cc = max(nx.connected_components(g), key=len)
-        sub = g.subgraph(largest_cc)
-        try:
-            sub_eig = nx.eigenvector_centrality_numpy(sub, weight="weight")
-        except (nx.NetworkXException, np.linalg.LinAlgError) as exc:
-            logger.warning(
-                "eigenvector_centrality_numpy failed (%s); falling back to "
-                "power iteration",
-                exc,
-            )
-            sub_eig = nx.eigenvector_centrality(
-                sub, max_iter=eigenvector_max_iter, weight="weight"
-            )
-        eigenvector.update(sub_eig)
+    n_failed_components = 0
+    for comp in nx.connected_components(g):
+        if len(comp) < 2:
+            continue  # singleton stays at 0.0
+        sub = g.subgraph(comp)
+        # eigenvector_centrality_numpy uses ARPACK which requires N >= 3.
+        # For size-2 components, fall straight through to power iteration.
+        comp_eig: dict[str, float] | None = None
+        if len(sub) >= 3:
+            try:
+                comp_eig = nx.eigenvector_centrality_numpy(sub, weight="weight")
+            except (nx.NetworkXException, np.linalg.LinAlgError, TypeError):
+                comp_eig = None
+        if comp_eig is None:
+            try:
+                comp_eig = nx.eigenvector_centrality(
+                    sub, max_iter=eigenvector_max_iter, weight="weight"
+                )
+            except nx.NetworkXException:
+                n_failed_components += 1
+                continue  # leave nodes in this component at 0.0
+        eigenvector.update(comp_eig)
+    if n_failed_components:
+        logger.warning(
+            "eigenvector centrality failed to converge on %d component(s); "
+            "those nodes left at 0.0",
+            n_failed_components,
+        )
 
     weighted_degree = dict(g.degree(weight="weight"))
     degree = dict(g.degree())
